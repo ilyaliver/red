@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Запуск Telegram бота</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --accent-1: #b026ff;
+            --accent-2: #ff2e9a;
+            --accent-3: #00f0ff;
+            --bg-deep: #07050d;
+            --bg-mid: #110a1f;
+            --surface: rgba(22, 14, 38, 0.55);
+            --surface-strong: rgba(22, 14, 38, 0.85);
+            --border-soft: rgba(176, 38, 255, 0.25);
+            --border-strong: rgba(176, 38, 255, 0.55);
+            --text-main: #f1e9ff;
+            --text-muted: #a59cc7;
+            --warn: #ffb347;
+        }
+
+        html, body {
+            min-height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-main);
+            background: var(--bg-deep);
+            overflow-x: hidden;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            background:
+                radial-gradient(ellipse at 20% 10%, rgba(176, 38, 255, 0.25), transparent 50%),
+                radial-gradient(ellipse at 80% 90%, rgba(0, 240, 255, 0.18), transparent 55%),
+                linear-gradient(180deg, var(--bg-deep), var(--bg-mid));
+        }
+
+        /* Анимированные плавающие орбы на фоне */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.55;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb.o1 { width: 380px; height: 380px; background: var(--accent-1); top: -80px; left: -120px; animation: float 14s ease-in-out infinite; }
+        .orb.o2 { width: 320px; height: 320px; background: var(--accent-2); bottom: -100px; right: -80px; animation: float 18s ease-in-out infinite reverse; }
+        .orb.o3 { width: 260px; height: 260px; background: var(--accent-3); top: 40%; left: 55%; animation: float 22s ease-in-out infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%      { transform: translate(40px, -30px) scale(1.08); }
+            66%      { transform: translate(-30px, 40px) scale(0.95); }
+        }
+
+        /* Сетка-глитч на фоне */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(176, 38, 255, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(176, 38, 255, 0.06) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Главная карточка — glassmorphism */
+        .card {
+            position: relative;
+            z-index: 1;
+            max-width: 580px;
+            width: 100%;
+            background: var(--surface);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border-radius: 36px;
+            padding: 44px 36px 40px;
+            border: 1px solid var(--border-soft);
+            box-shadow:
+                0 30px 60px -20px rgba(0, 0, 0, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            animation: cardIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Светящаяся полоска сверху */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 20%;
+            right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-1), var(--accent-2), var(--accent-3), transparent);
+            border-radius: 2px;
+            opacity: 0.8;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            background: rgba(176, 38, 255, 0.12);
+            border: 1px solid var(--border-strong);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #d3b5ff;
+            margin-bottom: 18px;
+        }
+        .badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent-3);
+            box-shadow: 0 0 10px var(--accent-3);
+            animation: pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.3; }
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #d3b5ff 50%, var(--accent-3) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Большая кнопка-градиент */
+        .button-container {
+            margin-bottom: 28px;
+        }
+
+        .telegram-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            width: 100%;
+            padding: 18px 24px;
+            border-radius: 18px;
+            text-decoration: none;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.2px;
+            position: relative;
+            background: linear-gradient(135deg, var(--accent-1) 0%, var(--accent-2) 100%);
+            border: none;
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            box-shadow:
+                0 12px 30px -10px rgba(176, 38, 255, 0.6),
+                0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+        }
+
+        .telegram-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        .telegram-button:hover::before { transform: translateX(100%); }
+
+        .telegram-button:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 20px 40px -12px rgba(255, 46, 154, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+        }
+        .telegram-button:active { transform: translateY(0); }
+
+        .telegram-button i {
+            font-size: 26px;
+            transition: transform 0.3s ease;
+        }
+        .telegram-button:hover i { transform: rotate(-8deg) scale(1.1); }
+
+        /* Динамическая подсказка после клика */
+        .dynamic-hint {
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 14px;
+            background: rgba(255, 179, 71, 0.08);
+            border: 1px solid rgba(255, 179, 71, 0.3);
+            color: var(--warn);
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeUp 0.3s ease;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* VPN-предупреждение */
+        .vpn-warning {
+            display: flex;
+            gap: 16px;
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            margin-bottom: 28px;
+        }
+        .vpn-warning .icon-wrap {
+            flex-shrink: 0;
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 14px;
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--accent-3);
+            font-size: 22px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+        }
+        .vpn-warning .body { flex: 1; }
+        .vpn-warning .title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #c5f7ff;
+            margin-bottom: 4px;
+        }
+        .vpn-warning .desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .vpn-warning .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(0, 240, 255, 0.08);
+            font-size: 0.75rem;
+            color: var(--accent-3);
+            font-weight: 600;
+        }
+
+        /* Секция копирования */
+        .copy-section {
+            padding: 20px;
+            border-radius: 24px;
+            background: rgba(7, 5, 13, 0.55);
+            border: 1px solid rgba(176, 38, 255, 0.15);
+        }
+
+        .copy-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+        .copy-label i { color: var(--accent-1); font-size: 18px; }
+
+        .link-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px;
+            border-radius: 16px;
+            background: rgba(7, 5, 13, 0.8);
+            border: 1px solid rgba(176, 38, 255, 0.2);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .link-box:focus-within {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 0 3px rgba(176, 38, 255, 0.15);
+        }
+
+        .bot-link {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 10px 12px;
+            color: #e8dfff;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-size: 0.9rem;
+            min-width: 0;
+        }
+
+        .copy-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            flex-shrink: 0;
+        }
+        .copy-button i { font-size: 16px; }
+        .copy-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px -8px rgba(255, 46, 154, 0.6);
+        }
+
+        .copy-feedback {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #4ade80;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .extra-note {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px dashed rgba(176, 38, 255, 0.15);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .extra-note .search-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(176, 38, 255, 0.12);
+            color: #d3b5ff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        /* Адаптив */
+        @media (max-width: 540px) {
+            .card { padding: 32px 22px 30px; border-radius: 28px; }
+            h1 { font-size: 1.6rem; }
+            .telegram-button { font-size: 1rem; padding: 16px 20px; }
+            .link-box { flex-wrap: wrap; padding: 10px; border-radius: 14px; }
+            .bot-link { width: 100%; text-align: center; padding: 8px 4px; }
+            .copy-button { width: 100%; justify-content: center; }
+            .vpn-warning { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+    <div class="grid-bg"></div>
+
+    <div class="card">
+        <div class="header">
+            <div class="badge">
+                <span class="dot"></span>
+                <span>Online · Telegram Bot</span>
+            </div>
+            <h1>Запустить бота<br>в один клик</h1>
+            <p class="subtitle">Перейди по кнопке ниже или найди бота в поиске Telegram вручную.</p>
+        </div>
+
+        <div class="button-container">
+            <a href="#" id="botLinkButton" class="telegram-button" target="_blank" rel="noopener noreferrer">
+                <i class="ti ti-brand-telegram"></i>
+                <span>Открыть в Telegram</span>
+                <i class="ti ti-arrow-up-right" style="font-size: 18px; margin-left: auto; opacity: 0.8;"></i>
+            </a>
+        </div>
+
+        <div class="vpn-warning">
+            <div class="icon-wrap">
+                <i class="ti ti-shield-lock-filled"></i>
+            </div>
+            <div class="body">
+                <div class="title">Возможно, понадобится VPN</div>
+                <div class="desc">В ряде регионов Telegram ограничен. Если ссылка не открывается — включите VPN.</div>
+                <div class="pill"><i class="ti ti-bolt"></i> Совет: проверьте соединение перед запуском</div>
+            </div>
+        </div>
+
+        <div class="copy-section">
+            <div class="copy-label">
+                <i class="ti ti-copy"></i>
+                <span>Скопируйте имя бота и найдите его в поиске</span>
+            </div>
+            <div class="link-box">
+                <input type="text" id="botUsernameInput" class="bot-link" readonly value="" />
+                <button id="copyLinkBtn" class="copy-button">
+                    <i class="ti ti-clipboard"></i>
+                    <span>Копировать</span>
+                </button>
+            </div>
+            <div id="copyToast" class="copy-feedback">
+                <i class="ti ti-circle-check-filled"></i>
+                <span>Имя бота скопировано в буфер обмена</span>
+            </div>
+            <div class="extra-note">
+                <i class="ti ti-search" style="color: var(--accent-1);"></i>
+                <span>Открой Telegram → поиск → введи</span>
+                <span class="search-tag" id="botUsernameDisplay">@username</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BOT_USERNAME = "-";
+
+        (function() {
+            if (typeof BOT_USERNAME === 'undefined') {
+                console.error('❌ Ошибка: переменная BOT_USERNAME не определена!');
+                return;
+            }
+
+            const TELEGRAM_BOT_LINK = `https://t.me/${BOT_USERNAME}`;
+            const BOT_USERNAME_ONLY  = BOT_USERNAME;
+            const SEARCH_QUERY      = `@${BOT_USERNAME}`;
+
+            const mainButton        = document.getElementById('botLinkButton');
+            const botLinkInput      = document.getElementById('botUsernameInput');
+            const copyBtn           = document.getElementById('copyLinkBtn');
+            const copyToast         = document.getElementById('copyToast');
+            const botUsernameDisplay= document.getElementById('botUsernameDisplay');
+
+            if (mainButton)         mainButton.href = TELEGRAM_BOT_LINK;
+            if (botLinkInput)       botLinkInput.value = BOT_USERNAME_ONLY;
+            if (botUsernameDisplay) botUsernameDisplay.innerText = SEARCH_QUERY;
+
+            async function copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (err) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    return ok;
+                }
+            }
+
+            if (copyBtn) {
+                copyBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const ok = await copyToClipboard(BOT_USERNAME_ONLY);
+                    if (ok && copyToast) {
+                        copyToast.style.display = 'flex';
+                        copyToast.style.opacity = '0';
+                        requestAnimationFrame(() => {
+                            copyToast.style.transition = 'opacity 0.25s ease';
+                            copyToast.style.opacity = '1';
+                        });
+                        setTimeout(() => {
+                            copyToast.style.opacity = '0';
+                            setTimeout(() => copyToast.style.display = 'none', 300);
+                        }, 2200);
+                    } else {
+                        alert('Не удалось скопировать. Выделите имя вручную.');
+                    }
+                });
+            }
+
+            if (mainButton) {
+                mainButton.addEventListener('click', () => {
+                    const existing = document.querySelector('.dynamic-hint');
+                    if (existing) existing.remove();
+
+                    const hint = document.createElement('div');
+                    hint.className = 'dynamic-hint';
+                    hint.innerHTML = '<i class="ti ti-info-circle"></i><span>Не открывается? Включи VPN или скопируй имя ниже.</span>';
+
+                    const container = document.querySelector('.button-container');
+                    if (container) {
+                        container.appendChild(hint);
+                        setTimeout(() => {
+                            hint.style.transition = 'opacity 0.4s ease';
+                            hint.style.opacity = '0';
+                            setTimeout(() => hint.remove(), 400);
+                        }, 4500);
+                    }
+                });
+            }
+
+            if (botLinkInput) {
+                botLinkInput.addEventListener('click', (e) => e.target.select());
+            }
+
+            console.log('✅ Бот:', TELEGRAM_BOT_LINK);
+        })();
+    </script>
+</body>
+</html>
