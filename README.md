@@ -1,4 +1,25 @@
-# red
-Template #1 - https://ilyaliver.github.io/red/orig/
-Template #2 - https://ilyaliver.github.io/red/
-Template #2 - https://ilyaliver.github.io/red/temp1/
+# Red — Шаблон TG Redirect Bot
+
+Набор шаблонов для создания бота редиректа Telegram с HTML интерфейсом.
+
+## 📋 Доступные шаблоны
+
+| № | Название | Ссылка |
+|---|----------|--------|
+| 1 | Оригинальный шаблон | [Просмотр](https://ilyaliver.github.io/red/orig/) |
+| 2 | Основной шаблон | [Просмотр](https://ilyaliver.github.io/red/) |
+| 3 | Альтернативный шаблон | [Просмотр](https://ilyaliver.github.io/red/temp1/) |
+
+## 🚀 Быстрый старт
+
+1. Выберите один из шаблонов выше
+2. Клонируйте репозиторий
+3. Адаптируйте под свои нужды
+
+## 📝 О проекте
+
+Проект содержит HTML-шаблоны для настройки редирект-бота Telegram. Каждый шаблон имеет свои особенности оформления и функциональности.
+
+## 📄 Лицензия
+
+MIT
